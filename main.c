@@ -127,7 +127,6 @@ void printTTTBoard(char board[]){
 
 int isboardfull(char board[]){
     for(int i=0;i<=(sizeof(board)/sizeof(board[0]));i++){
-        printf("checking position %i\n",i);
         if (board[i] == ' ') {
             return 0;      //loop through board until you encounter empty slot, then board isn't full --> return 0
             break;         //break out of function
@@ -136,29 +135,28 @@ int isboardfull(char board[]){
     return 1;                               //board has been looped through with out an empty slot found so return 1
 }
 
-int main(int argc, const char * argv[])
-{
+int main(int argc, const char * argv[]){
     char move[] = "";
     printf("Welcome to Ben's Tic Tac Toe. (You can't win)\nBegin by placing your first move:\n\n");
-    while(checkwin(board) == ' ' || isboardfull(board) == 0){ //should exit on a win or draw (board is full) --> keep running while checkwin doesn't return x or o, or while board has empty slots
+    while(checkwin(board) == ' ' && isboardfull(board) == 0){
+            /*while loop should run for the duration of a game
+             game ends when board is full(draw) OR x or o has won.
+             game continue if there is an empty slot and there's no winner*/
         printTTTBoard(board);                       //print the board
         printf("enter your move: ");                //prompt the user
         scanf("%s",move);                           //get input
         if(board[atoi(move)] == ' '){               //if slot is empty
             board[atoi(move)] = 'X';                //place user move
             int compmove = chooseMove(board, 1).move;
-            if(compmove == 32) printf("error. while loop should have ended\n");
             board[compmove] = 'O'; //place computer move
-            printf("computer moved at %i\n", compmove);
         } else {
             printf("that spot is occupied\n");
         }
     }
-    printf("end of while loop reached\n");
     printTTTBoard(board);
     if(checkwin(board) == 'X') printf("you won!\n");
     else if(checkwin(board) == 'O') printf("you lost!\n");
-    else if(checkwin(board) == ' ') printf("draw");
+    else if(checkwin(board) == ' ') printf("the game was a draw");
     return 0;
     //side 1 = O , or computer
     //side 0 = X , or human
