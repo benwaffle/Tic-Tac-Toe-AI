@@ -1,4 +1,4 @@
-//
+
 //  main.c
 //  tictactoe
 //
@@ -62,19 +62,16 @@ best chooseMove(char board[], int side){
     if(checkwin(board) == 'X'){         //X has won (human)
         myBest.move = ' ';
         myBest.score = -1;              //-1 for computer
-//        printf("X wins terminal node reached\n");
         return myBest;
     }
     else if(checkwin(board) == 'O'){    //O has won (computer)
         myBest.move = ' ';
         myBest.score = 1;               //+1 for computer
-//        printf("O wins terminal node reached\n");
         return myBest;
     }
     else if(numOfCharOnBoard(' ', board)==0){ //no empty slots, board is full
         myBest.move = ' ';
         myBest.score = 0;               //its a draw
-//        printf("draw terminal node reached\n");
         return myBest;
     }
     
@@ -95,16 +92,12 @@ best chooseMove(char board[], int side){
         if(board[i]==' '){                                      //if it is empty
             if (side==1){                                           //if computer turn
                 board[i] = 'O';                                         //place O
-//                printf("placed an O in position %i.recursing...\n",i);
                 reply = chooseMove(board, 0);                         //recursive part (0 = X = human)
                 board[i] = ' ';                                         //undo move
-//                printf("move %i undone\n",i);
             } else {                                                //else (human turn)
                 board[i] = 'X';                                         //place X
-//                printf("placed an X in position %i.recursing...\n",i);
                 reply = chooseMove(board, 1);                         //recursive part (1 = O = computer)
                 board[i] = ' ';                                         //undo move
-//                printf("move %i undone\n",i);
             }
             if ((side==1 && (reply.score>myBest.score)) || (side==0 && (reply.score<myBest.score))){    //if computer turn and we got a better move or
                 myBest.move = i;                                                                        //if human turn and has move worse for computer
@@ -132,16 +125,15 @@ int isboardfull(char board[]){
             break;         //break out of function
         }
     }
-    return 1;                               //board has been looped through with out an empty slot found so return 1
+    return 1;              //board has been looped through with out an empty slot found so return 1
 }
 
 int main(int argc, const char * argv[]){
     char move[] = "";
-    printf("Welcome to Ben's Tic Tac Toe. (You can't win)\nBegin by placing your first move:\n\n");
+    printf("Welcome to Ben's Tic Tac Toe. (You can't win)\nBegin by placing your first move:\n");
     while(checkwin(board) == ' ' && isboardfull(board) == 0){
-            /*while loop should run for the duration of a game
-             game ends when board is full(draw) OR x or o has won.
-             game continue if there is an empty slot and there's no winner*/
+            /* while loop should run for the duration of a game game ends when board is full(draw) OR x or o has won. game continue if there is an empty slot and there's no winner*/
+        printf("\n");
         printTTTBoard(board);                       //print the board
         printf("enter your move: ");                //prompt the user
         scanf("%s",move);                           //get input
@@ -158,6 +150,4 @@ int main(int argc, const char * argv[]){
     else if(checkwin(board) == 'O') printf("you lost!\n");
     else if(checkwin(board) == ' ') printf("the game was a draw");
     return 0;
-    //side 1 = O , or computer
-    //side 0 = X , or human
 }
