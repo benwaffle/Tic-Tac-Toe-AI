@@ -14,7 +14,7 @@ import javax.swing.UnsupportedLookAndFeelException;
 
 public class GUI {
 	private JFrame frame;
-	private String[] board = {" "," "," "," "," "," "," "," "," "};;
+	private String[] board = {" "," "," "," "," "," "," "," "," "};
 
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
