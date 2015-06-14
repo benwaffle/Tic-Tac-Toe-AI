@@ -1,136 +1,184 @@
+// vim: et:ts=4:sw=4:cc=120
 #include <stdio.h>
-#include <inttypes.h>
+#include <string.h>
 #include <stdbool.h>
+#include <inttypes.h>
+#include <err.h>
+#include <glib.h>
 
-typedef enum {
-    human, cpu
-} player;
+typedef enum { HUMAN, CPU } player;
+typedef struct { int move, score; } best;
 
-#define SIZE 9
-char board[SIZE] = {
-    ' ', ' ', ' ',
-    ' ', ' ', ' ',
-    ' ', ' ', ' '
-};
-
-typedef struct {
-    int move;
-    int score;
-} best;
-
-unsigned count_char(char board[static SIZE], char c) {
+unsigned count_char(int const n, char const board[n*n], char c) {
     unsigned count = 0;
-    for(int i = 0; i < SIZE; ++i)
+    for(int i = 0; i < n*n; ++i)
         if(board[i] == c)
             count++;
     return count;
 }
 
-void print_array(char array[static SIZE]) {
-    for(int i = 0; i < SIZE; ++i)
-        printf("%c ", array[i]);
+static inline bool board_is_full(int const n, char const board[n*n]) {
+    return count_char(n, board, ' ') == 0;
 }
 
-char winner(char board[static SIZE]) {
-         if (board[0] == board[1] && board[0] == board[2]) return board[0];
-    else if (board[3] == board[4] && board[3] == board[5]) return board[3];
-    else if (board[6] == board[7] && board[6] == board[8]) return board[6];
-    else if (board[0] == board[3] && board[0] == board[6]) return board[0];
-    else if (board[1] == board[4] && board[1] == board[7]) return board[1];
-    else if (board[2] == board[5] && board[2] == board[8]) return board[2];
-    else if (board[0] == board[4] && board[0] == board[8]) return board[0];
-    else if (board[2] == board[4] && board[2] == board[6]) return board[2];
-    else                                                   return ' ';
+static bool check_row(int const n, char const board[n*n], int row) {
+    char c = board[row*n];
+    if (c == ' ') return false;
+    for (int i = 0; i < n; ++i)
+        if (board[row*n + i] != c)
+            return false;
+    return true;
 }
 
-best choose_move(char board[static SIZE], player p) {
+static bool check_col(int const n, char const board[n*n], int col) {
+    char c = board[col];
+    if (c == ' ') return false;
+    for (int i = 0; i < n; ++i)
+        if (board[col + i*n] != c)
+            return false;
+    return true;
+}
+
+static bool check_diag(int const n, char const board[n*n], bool dir) {
+    char c = board[dir ? 0 : n-1];
+    if (c == ' ') return false;
+    for (int i = 0; i < n; ++i)
+        if (board[i*n + (dir ? i : n-1-i)] != c)
+            return false;
+    return true;
+}
+
+char winner(int const n, char const board[n*n]) {
+    for (int i = 0; i < n; ++i)
+        if (check_row(n, board, i))
+            return board[i*n];
+        else if (check_col(n, board, i))
+            return board[i];
+
+    if (check_diag(n, board, true))
+        return board[0];
+    if (check_diag(n, board, false))
+        return board[n-1];
+
+    return ' ';
+}
+
+best minimax(int const n, char board[n*n], player turn, int alpha, int beta) {
     // terminal node 
-         if (winner(board) == 'X')        return (best){ .move = ' ', .score = -1 }; // I lose
-    else if (winner(board) == 'O')        return (best){ .move = ' ', .score = 1 };  // I win
-    else if (count_char(board, ' ') == 0) return (best){ .move = ' ', .score = 0 };  // draw
+         if (winner(n, board) == 'X')     return (best){ .move = -1, .score = -1 }; // I lose
+    else if (winner(n, board) == 'O')     return (best){ .move = -1, .score = 1 };  // I win
+    else if (board_is_full(n, board))     return (best){ .move = -1, .score = 0 };  // draw
 
     // worst possible score
     best my_best = {
-        .score = (p == cpu ? -2 : 2)
+        .score = (turn == CPU ? -2 : 2)
     };
-    // recursively call choose_move() until you get to a leaf
-    for(int i = 0; i < SIZE; ++i)
-        if (board[i] == ' ') { //for each available spot
+    // recursively call minimax() until you get to a leaf
+    for(int i = 0; i < n*n; ++i) {
+        if (board[i] == ' ') { //for each available spot 
             best child;
-            if (p == cpu) {
+            if (turn == CPU) {
                 board[i] = 'O';
-                child = choose_move(board, human);
-                board[i] = ' ';
-            } else {
+                child = minimax(n, board, HUMAN, alpha, beta);
+                if (child.score > my_best.score)
+                    my_best = (best){
+                        .move = i,
+                        .score = child.score
+                    };
+                if (my_best.score > alpha)
+                    alpha = my_best.score;
+            } else if (turn == HUMAN) {
                 board[i] = 'X';
-                child = choose_move(board, cpu);
-                board[i] = ' ';
+                child = minimax(n, board, CPU, alpha, beta);
+                if (child.score < my_best.score)
+                    my_best = (best){
+                        .move = i,
+                        .score = child.score
+                    };
+                if (my_best.score < beta)
+                    beta = my_best.score;
+            } else {
+                g_assert_not_reached();
             }
-            // if we found a better score
-            if ((p == cpu   && child.score > my_best.score) ||
-                (p == human && child.score < my_best.score)) {
-                my_best = (best){
-                    .move = i,
-                    .score = child.score
-                };
-            }
+            board[i] = ' ';
         }
+    }
     return my_best; //return the best move
 }
 
-void printTTTBoard(char board[static SIZE]) {
+void printTTTBoard(int const n, char const board[n*n]) {
     #define RED "\x1b[41m"
     #define BLUE "\x1b[46m"
     #define RESET "\x1b[0m"
 
+    g_autofree char *nxnstr = g_strdup_printf("%d", n*n);
+    const int maxwidth = strlen(nxnstr);
+
     printf("\n");
-    for(int i = 0; i < SIZE; ++i) {
-        if (board[i] == ' ')      printf(" %i ", i);
+    for(int i = 0; i < n*n; ++i) {
+             if (board[i] == ' ') printf(" %*d ", maxwidth, i);
         else if (board[i] == 'X') printf(BLUE " X " RESET);
-        else                      printf(RED " O " RESET);
+        else if (board[i] == 'O') printf(RED " O " RESET);
+        else g_assert_not_reached();
 
         // ascii art
-        if (i % 3 != 2) putchar('|');
-        if (i == 2 || i == 5) printf("\n------------\n");
+        if (i % n != n-1) {
+            putchar('|');
+        } else if (i / n != n-1) {
+            putchar('\n');
+            for (int j = 0; j < n; ++j) {
+                for (int k = 0; k < maxwidth+2; ++k) putchar('-');
+                if (j != n-1) putchar('+');
+            }
+            putchar('\n');
+        }
     }
     printf("\n\n");
 }
 
-bool board_is_full(char board[static SIZE]) {
-    return count_char(board, ' ') == 0;
-}
-
 int main() {
-    printf("Welcome to Ben's Tic Tac Toe. (You can't win)\n");
+    int n = 3;
+    printf("enter game size: ");
+    scanf("%d", &n);
 
-    bool cpu_turn = false;
-    while(winner(board) == ' ' && !board_is_full(board)) {
-        if (cpu_turn) {
-            board[choose_move(board, 1).move] = 'O';
-        } else {
-            printTTTBoard(board);
-            printf("enter your move: ");
+    char board[n*n];
+    memset(board, ' ', sizeof(board));
+
+    player turn = HUMAN;
+    while (winner(n, board) == ' ' && !board_is_full(n, board)) {
+        if (turn == CPU) {
+            board[minimax(n, board, 1, INT_MIN, INT_MAX).move] = 'O';
+        } else if (turn == HUMAN) {
+            printTTTBoard(n, board);
+            printf("Enter your move: ");
 
             int move;
             if (scanf("%d", &move) != 1) {
                 char garbage[64];
                 fgets(garbage, sizeof garbage, stdin);
-                puts("bad input");
+                fprintf(stderr, "bad input\n");
                 continue;
             }
 
-            if(board[move] == ' '){
-                board[move] = 'X';
-            } else {
-                puts("that spot is occupied");
+            if (move < 0 || move > n*n) {
+                fprintf(stderr, "Out of bounds\n");
                 continue;
             }
+
+            if (board[move] != ' ') {
+                fprintf(stderr, "That spot is occupied\n");
+                continue;
+            }
+
+            board[move] = 'X';
+        } else {
+            g_assert_not_reached();
         }
-        cpu_turn = !cpu_turn;
+        turn = (turn == HUMAN) ? CPU : HUMAN;
     }
 
-    printTTTBoard(board);
-    if (winner(board) == 'X') puts("you won!");
-    else if (winner(board) == 'O') puts("you lost!");
-    else puts("the game was a draw");
+    printTTTBoard(n, board);
+         if (winner(n, board) == 'X') puts("you won!");
+    else if (winner(n, board) == 'O') puts("you lost!");
+    else                           puts("the game was a draw");
 }

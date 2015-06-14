@@ -2,3 +2,5 @@ a.out
 *.o
 *.so
 ttt
+.gdb_history
+peda-session-*
